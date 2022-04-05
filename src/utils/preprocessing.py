@@ -3,6 +3,7 @@ from scipy.signal import decimate
 from heartpy import remove_baseline_wander, filtering as hp_filtering
 import numpy as np
 import torch
+from torch.nn.functional import normalize
 import torchaudio.transforms as tat
 import librosa
 
@@ -104,7 +105,24 @@ def split_signals(raw_signals, final_len=10000, stride=2500, pad=False):
         
 def make_mel_spectrograms(raw_signals, sampling_rate=1000):
     pcg_signals = list()
-    mel_spectrogram_transform = tat.MelSpectrogram(sampling_rate, n_fft=512, f_min=1, f_max=200)
+    mel_spectrogram_transform = tat.MelSpectrogram(sampling_rate, f_min=1, f_max=400, n_mels=64)
+    # mel_spectrogram_transform = tat.Spectrogram()
+    n_fft = 1024
+    win_length = None
+    hop_length = 500
+    n_mels = 512
+    n_mfcc = 256
+
+    mfcc_transform = tat.MFCC(
+        sample_rate=1000,
+        n_mfcc=n_mfcc,
+        melkwargs={
+            "n_fft": n_fft,
+            "n_mels": n_mels,
+            "hop_length": hop_length,
+            "mel_scale": "htk",
+        },
+    )
     for patient in raw_signals:
 
         tp1 = list()
@@ -112,7 +130,13 @@ def make_mel_spectrograms(raw_signals, sampling_rate=1000):
             raw_signal      = patient[0][i]
             mel_spect  = mel_spectrogram_transform(torch.from_numpy(raw_signal.copy()).type(torch.FloatTensor))
             mel_spect  = librosa.power_to_db(mel_spect)
-            tp1.append(torch.from_numpy(mel_spect.copy()).type(torch.FloatTensor))
+            
+            fin = torch.from_numpy(mel_spect.copy()).type(torch.FloatTensor)
+            fin  = normalize(fin, p=2)
+            fin = fin/fin.max()
+            # fin = mel_spect
+            
+            tp1.append(fin)
         pcg_signals.append((tp1,patient[1]))
         
     return pcg_signals

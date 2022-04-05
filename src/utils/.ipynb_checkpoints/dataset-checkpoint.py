@@ -13,8 +13,8 @@ class PCGDataset(Dataset):
         
         signals, labels, pids = get_pcg_data(data_folder)
         signals = resample_pcg_signals(signals)
-        signals = apply_bandpass_filter(signals, low_cutoff=1, high_cutoff=200)
-        signals = split_signals(signals, final_len=8192, stride=2048)
+        signals = apply_bandpass_filter(signals, low_cutoff=1, high_cutoff=400)
+        signals = split_signals(signals, final_len=10000, stride=2500)
         
         mel_spects = make_mel_spectrograms(signals, 1000)
         
