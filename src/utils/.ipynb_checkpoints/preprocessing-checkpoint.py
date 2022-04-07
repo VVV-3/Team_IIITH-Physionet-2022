@@ -90,7 +90,9 @@ def split_signals(raw_signals, final_len=10000, stride=2500, pad=False):
             while cur_pos<ttl_len:
                 if (cur_pos+final_len) > ttl_len:
                     break
-                tp1.append(raw_signal[cur_pos:cur_pos+final_len])
+                splt = raw_signal[cur_pos:cur_pos+final_len]
+                splt = splt/splt.max()
+                tp1.append(splt)
                 cur_pos += stride
             
 #             if pad:
@@ -132,10 +134,9 @@ def make_mel_spectrograms(raw_signals, sampling_rate=1000):
             mel_spect  = librosa.power_to_db(mel_spect)
             
             fin = torch.from_numpy(mel_spect.copy()).type(torch.FloatTensor)
-            fin  = normalize(fin, p=2)
             fin = fin/fin.max()
             # fin = mel_spect
-            
+            # fin  = normalize(fin, p=0)
             tp1.append(fin)
         pcg_signals.append((tp1,patient[1]))
         

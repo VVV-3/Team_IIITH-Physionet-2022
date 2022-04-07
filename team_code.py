@@ -52,19 +52,19 @@ def train_challenge_model(data_folder, model_folder, verbose):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     train_config = {
-                    'num_epochs':6,
-                    'learning_rate':1e-4,
+                    'num_epochs':20,
+                    'learning_rate':5e-5,
                     }
     
-    model2 = ASTModel(label_dim=3,input_fdim=33, input_tdim=128, imagenet_pretrain=False)
+    # model2 = ASTModel(label_dim=3,input_fdim=33, input_tdim=128, imagenet_pretrain=False)
     arch_config = {
                     'n_input_channels':1,
                     'signal_length':10000,
                     'net_filter_size':[8 , 32, 64 ],
-                    'net_signal_length':[5000, 500, 250],
-                    'kernel_size':51,
-                    'n_classes':3,
-                    'dropout_rate':0.1
+                    'net_signal_length':[ 5000, 500, 125],
+                    'kernel_size':[51, 33, 17],
+                    'n_classes':2,
+                    'dropout_rate':0.4
                     }
 
     model = ResNet1d(input_dim=(arch_config['n_input_channels'], arch_config['signal_length']), 
@@ -74,7 +74,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
                      dropout_rate=arch_config['dropout_rate'])
     model = model.to(device)
     
-    class_weights=torch.tensor([5,1,1],dtype=torch.float)
+    class_weights=torch.tensor([3.5,1],dtype=torch.float)
     class_weights = class_weights.to(device)
     criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
     optimizer = torch.optim.Adam(model.parameters(), lr=train_config['learning_rate'], weight_decay=0.005)
@@ -93,7 +93,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
             optimizer.step()    
 
     # Save the model.
-    save_challenge_model(model_folder, classes, model, model2)
+    save_challenge_model(model_folder, classes, model)
 
     if verbose >= 1:
         print('Done.')
@@ -134,10 +134,26 @@ def run_challenge_model(model, data, recordings, verbose):
     mast.eval()
     outputs = mast(inps)
     a =np.array(outputs.detach().cpu())
+    
+    # a = np.round(a.reshape(a.shape[0])).astype(int)
+    # tp2 = np.zeros((a.shape[0],2))
+    # for i in range(len(a)):
+    #     if a[i]==0:
+    #         tp2[i,0] = 1
+    #     else:
+    #         tp2[i,1] = 1
+    # a = tp2.copy()
+    
+    tp = np.zeros((a.shape[0],a.shape[1]+1))
+    tp[:,0] = a[:,0]
+    tp[:,2] = a[:,1]
+    a = tp.copy()
     pp = np.argmax(a, axis = 1)
     ls=list(pp)
     probs = np.array([ls.count(0), ls.count(1), ls.count(2)])/len(ls)
     val = probs.max()
+    if(probs[0]>0.4):
+        val = probs[0]
     pos = np.where( probs == val)
 
     # Choose label with higher probability.
@@ -153,7 +169,7 @@ def run_challenge_model(model, data, recordings, verbose):
 ################################################################################
 
 # Save your trained model.
-def save_challenge_model(model_folder, classes, model, model2):
+def save_challenge_model(model_folder, classes, model):
     d = {'classes': classes, 'model': model}
     filename = os.path.join(model_folder, 'model.sav')
     joblib.dump(d, filename, protocol=0)

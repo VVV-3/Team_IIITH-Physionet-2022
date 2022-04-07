@@ -93,22 +93,16 @@ class ResNet1d(nn.Module):
     kernel_size: int, optional
         Kernel size for convolutional layers. The current implementation
         only supports odd kernel sizes. Default is 17.
-    References
-    ----------
-    .. [1] K. He, X. Zhang, S. Ren, and J. Sun, "Identity Mappings in Deep Residual Networks,"
-           arXiv:1603.05027, Mar. 2016. https://arxiv.org/pdf/1603.05027.pdf.
-    .. [2] K. He, X. Zhang, S. Ren, and J. Sun, "Deep Residual Learning for Image Recognition," in 2016 IEEE Conference
-           on Computer Vision and Pattern Recognition (CVPR), 2016, pp. 770-778. https://arxiv.org/pdf/1512.03385.pdf
     """
 
-    def __init__(self, input_dim, blocks_dim, kernel_size=17,n_classes=3,dropout_rate=0.8):
+    def __init__(self, input_dim, blocks_dim, kernel_size,n_classes=3,dropout_rate=0.8):
         super(ResNet1d, self).__init__()
         # First layers
         n_filters_in, n_filters_out = input_dim[0], blocks_dim[0][0]
         n_samples_in, n_samples_out = input_dim[1], blocks_dim[0][1]
         downsample = _downsample(n_samples_in, n_samples_out)
-        padding = _padding(downsample, kernel_size)
-        self.conv1 = nn.Conv1d(n_filters_in, n_filters_out, kernel_size, bias=False,
+        padding = _padding(downsample, kernel_size[0])
+        self.conv1 = nn.Conv1d(n_filters_in, n_filters_out, kernel_size[0], bias=False,
                                stride=downsample, padding=padding)
         self.bn1 = nn.BatchNorm1d(n_filters_out)
 
@@ -118,11 +112,17 @@ class ResNet1d(nn.Module):
             n_filters_in, n_filters_out = n_filters_out, n_filters
             n_samples_in, n_samples_out = n_samples_out, n_samples
             downsample = _downsample(n_samples_in, n_samples_out)
-            resblk1d = ResBlock1d(n_filters_in, n_filters_out, downsample, kernel_size, dropout_rate)
+            resblk1d = ResBlock1d(n_filters_in, n_filters_out, downsample, kernel_size[i], dropout_rate)
             self.add_module('resblock1d_{0}'.format(i), resblk1d)
             self.res_blocks += [resblk1d]
             
-        self.lin = nn.Linear(blocks_dim[-1][0]*blocks_dim[-1][1], n_classes)
+        self.lin1 = nn.Linear(blocks_dim[-1][0]*blocks_dim[-1][1], int((blocks_dim[-1][0]*blocks_dim[-1][1])/2))
+        self.relu1 = nn.ReLU(inplace=False)
+        self.lin2 = nn.Linear(int((blocks_dim[-1][0]*blocks_dim[-1][1])/2), n_classes)
+        self.dropout1 = nn.Dropout(dropout_rate)
+        
+        self.lin3 = nn.Linear(n_classes, 1)
+        self.sigm = nn.Sigmoid()
 
     def forward(self, x):
         """Implement ResNet1d forward propagation"""
@@ -139,6 +139,12 @@ class ResNet1d(nn.Module):
         x = x.view(x.size(0), -1)
 
         # Fully connected layer
-        x = self.lin(x)
+        x = self.dropout1(x)
+        x = self.lin1(x)
+        x = self.relu1(x)
+        x = self.lin2(x)
+        
+        # x = self.lin3(x)
+        # x = self.sigm(x)
 
         return x
