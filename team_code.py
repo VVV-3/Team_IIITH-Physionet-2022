@@ -74,7 +74,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
                      dropout_rate=arch_config['dropout_rate'])
     model = model.to(device)
     
-    class_weights=torch.tensor([3.5,1],dtype=torch.float)
+    class_weights=torch.tensor([3.99,1],dtype=torch.float)
     class_weights = class_weights.to(device)
     criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
     optimizer = torch.optim.Adam(model.parameters(), lr=train_config['learning_rate'], weight_decay=0.005)
@@ -152,7 +152,7 @@ def run_challenge_model(model, data, recordings, verbose):
     ls=list(pp)
     probs = np.array([ls.count(0), ls.count(1), ls.count(2)])/len(ls)
     val = probs.max()
-    if(probs[0]>0.4):
+    if(probs[0]>0.25):
         val = probs[0]
     pos = np.where( probs == val)
 
