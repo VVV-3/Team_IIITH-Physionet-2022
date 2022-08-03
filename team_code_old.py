@@ -33,6 +33,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
     if verbose >= 1:
         print('Finding data files...')
 
+
     # Find the patient data files.
     patient_files = find_patient_files(data_folder)
     num_patient_files = len(patient_files)
@@ -43,14 +44,8 @@ def train_challenge_model(data_folder, model_folder, verbose):
     # Create a folder for the model if it does not already exist.
     os.makedirs(model_folder, exist_ok=True)
 
-    # Extract the features and labels.
-    if verbose >= 1:
-        print('Extracting features and labels from the Challenge data...')
-
-    murmur_classes = ['Present', 'Unknown', 'Absent']
-    num_murmur_classes = len(murmur_classes)
-    outcome_classes = ['Abnormal', 'Normal']
-    num_outcome_classes = len(outcome_classes)
+    classes = ['Present', 'Unknown', 'Absent']
+    num_classes = len(classes)
     
     trainset = PCGDataset(data_folder, transform=torch.from_numpy)
     trainloader = DataLoader(dataset=trainset, batch_size=64, shuffle=True)
@@ -95,13 +90,10 @@ def train_challenge_model(data_folder, model_folder, verbose):
             loss   = criterion(outputs, labels)
             optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
-        print(epoch)
-
-    
+            optimizer.step()    
 
     # Save the model.
-    save_challenge_model(model_folder, murmur_classes, model, outcome_classes, model)
+    save_challenge_model(model_folder, classes, model)
 
     if verbose >= 1:
         print('Done.')
@@ -115,11 +107,8 @@ def load_challenge_model(model_folder, verbose):
 # Run your trained model. This function is *required*. You should edit this function to add your code, but do *not* change the
 # arguments of this function.
 def run_challenge_model(model, data, recordings, verbose):
-
-    classes = model['murmur_classes']
-    mast    = model['murmur_classifier']
-    outcome_classes = model['outcome_classes']
-    # outcome_classifier = model['outcome_classifier']
+    classes = model['classes']
+    mast    = model['model']
     
     signals = [([],[])]
     for i in recordings:
@@ -137,16 +126,24 @@ def run_challenge_model(model, data, recordings, verbose):
         inps = inps.reshape((inps.shape[0],1,inps.shape[1]))
 #         print(inps.shape)
     else:
-        return classes+outcome_classes, np.array([0,1,0,1,0]), np.array([0,1,0,1,0])
+        return classes, np.array([0,1,0]), np.array([0,1,0])
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     inps = inps.to(device)
     mast = mast.to(device)
     mast.eval()
     outputs = mast(inps)
-    
-    
     a =np.array(outputs.detach().cpu())
+    
+    # a = np.round(a.reshape(a.shape[0])).astype(int)
+    # tp2 = np.zeros((a.shape[0],2))
+    # for i in range(len(a)):
+    #     if a[i]==0:
+    #         tp2[i,0] = 1
+    #     else:
+    #         tp2[i,1] = 1
+    # a = tp2.copy()
+    
     tp = np.zeros((a.shape[0],a.shape[1]+1))
     tp[:,0] = a[:,0]
     tp[:,2] = a[:,1]
@@ -162,35 +159,8 @@ def run_challenge_model(model, data, recordings, verbose):
     # Choose label with higher probability.
     labels = np.zeros(len(classes), dtype=np.int_)
     labels[pos] = 1
-    murmur_probabilities = probs
-    murmur_labels = labels
-    
-    a =np.array(outputs.detach().cpu())
-    tp = np.zeros((a.shape[0],a.shape[1]))
-    tp[:,0] = a[:,0]
-    tp[:,1] = a[:,1]
-    a = tp.copy()
-    pp = np.argmax(a, axis = 1)
-    ls=list(pp)
-    probs = np.array([ls.count(0), ls.count(1)])/len(ls)
-    val = probs.max()
-    if(probs[0]>0.25):
-        val = probs[0]
-    pos = np.where( probs == val)
 
-    # Choose label with higher probability.
-    labels = np.zeros(len(outcome_classes), dtype=np.int_)
-    labels[pos] = 1
-    outcome_probabilities = probs
-    outcome_labels = labels
-
-    # Concatenate classes, labels, and probabilities.
-    classes = classes + outcome_classes
-    labels = np.concatenate((murmur_labels, outcome_labels))
-    probabilities = np.concatenate((murmur_probabilities, outcome_probabilities))
-    
-
-    return classes, labels, probabilities
+    return classes, labels, probs
 
 ################################################################################
 #
@@ -199,8 +169,8 @@ def run_challenge_model(model, data, recordings, verbose):
 ################################################################################
 
 # Save your trained model.
-def save_challenge_model(model_folder, murmur_classes, murmur_classifier, outcome_classes, outcome_classifier):
-    d = {'murmur_classes': murmur_classes, 'murmur_classifier': murmur_classifier, 'outcome_classes': outcome_classes, 'outcome_classifier': outcome_classifier}
+def save_challenge_model(model_folder, classes, model):
+    d = {'classes': classes, 'model': model}
     filename = os.path.join(model_folder, 'model.sav')
     joblib.dump(d, filename, protocol=0)
 
