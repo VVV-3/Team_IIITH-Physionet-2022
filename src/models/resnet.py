@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 import numpy as np
 
 
@@ -107,14 +108,31 @@ class ResNet1d(nn.Module):
         self.bn1 = nn.BatchNorm1d(n_filters_out)
 
         # Residual block layers
-        self.res_blocks = []
+        self.res_blocks_0 = []
+        self.res_blocks_1 = []
+        self.res_blocks_2 = []
+        self.res_blocks_3 = []
         for i, (n_filters, n_samples) in enumerate(blocks_dim):
             n_filters_in, n_filters_out = n_filters_out, n_filters
             n_samples_in, n_samples_out = n_samples_out, n_samples
-            downsample = _downsample(n_samples_in, n_samples_out)
-            resblk1d = ResBlock1d(n_filters_in, n_filters_out, downsample, kernel_size[i], dropout_rate)
-            self.add_module('resblock1d_{0}'.format(i), resblk1d)
-            self.res_blocks += [resblk1d]
+            downsample = _downsample(n_samples_in, n_samples_out/4)
+            
+            resblk1d = ResBlock1d(n_filters_in, n_filters_out, downsample, kernel_size[0], dropout_rate)
+            self.add_module('resblock1d_0_{0}'.format(i), resblk1d)
+            self.res_blocks_0 += [resblk1d]
+            
+            resblk1d = ResBlock1d(n_filters_in, n_filters_out, downsample, kernel_size[1], dropout_rate)
+            self.add_module('resblock1d_1_{0}'.format(i), resblk1d)
+            self.res_blocks_1 += [resblk1d]
+            
+            resblk1d = ResBlock1d(n_filters_in, n_filters_out, downsample, kernel_size[2], dropout_rate)
+            self.add_module('resblock1d_2_{0}'.format(i), resblk1d)
+            self.res_blocks_2 += [resblk1d]
+            
+            resblk1d = ResBlock1d(n_filters_in, n_filters_out, downsample, kernel_size[3], dropout_rate)
+            self.add_module('resblock1d_3_{0}'.format(i), resblk1d)
+            self.res_blocks_3 += [resblk1d]
+            
             
         self.lin1 = nn.Linear(blocks_dim[-1][0]*blocks_dim[-1][1], int((blocks_dim[-1][0]*blocks_dim[-1][1])/2))
         self.relu1 = nn.ReLU(inplace=False)
@@ -132,8 +150,15 @@ class ResNet1d(nn.Module):
 
         # Residual blocks
         y = x
-        for blk in self.res_blocks:
-            x, y = blk(x, y)
+        for i in range(len(self.res_blocks_0)):
+            x_0, y_0 = self.res_blocks_0[i](x, y)
+            # print(x.shape, y.shape, x_0.shape, y_0.shape)
+            x_1, y_1 = self.res_blocks_1[i](x, y)
+            x_2, y_2 = self.res_blocks_2[i](x, y)
+            x_3, y_3 = self.res_blocks_3[i](x, y)
+            
+            x = torch.cat((x_0,x_1,x_2,x_3), 2)
+            y = torch.cat((y_0,y_1,y_2,y_3), 2)
             
          # Flatten array
         x = x.view(x.size(0), -1)

@@ -65,9 +65,9 @@ def train_challenge_model(data_folder, model_folder, verbose):
     arch_config = {
                     'n_input_channels':1,
                     'signal_length':10000,
-                    'net_filter_size':[8 , 32, 64 ],
-                    'net_signal_length':[ 5000, 500, 125],
-                    'kernel_size':[51, 33, 17],
+                    'net_filter_size':[8 , 32, 64],
+                    'net_signal_length':[ 5000, 500, 100],
+                    'kernel_size':[129, 65, 33, 9],
                     'n_classes':2,
                     'dropout_rate':0.4
                     }
