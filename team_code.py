@@ -72,36 +72,64 @@ def train_challenge_model(data_folder, model_folder, verbose):
                     'dropout_rate':0.4
                     }
 
-    model = ResNet1d(input_dim=(arch_config['n_input_channels'], arch_config['signal_length']), 
+    model_murmur = ResNet1d(input_dim=(arch_config['n_input_channels'], arch_config['signal_length']), 
                      blocks_dim=list(zip(arch_config['net_filter_size'], arch_config['net_signal_length'])),
                      kernel_size=arch_config['kernel_size'],
                      n_classes=arch_config['n_classes'],
                      dropout_rate=arch_config['dropout_rate'])
-    model = model.to(device)
+    model_murmur = model_murmur.to(device)
     
-    class_weights=torch.tensor([3.99,1],dtype=torch.float)
+    
+    class_weights=torch.tensor([4, 1],dtype=torch.float)
     class_weights = class_weights.to(device)
-    criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
-    optimizer = torch.optim.Adam(model.parameters(), lr=train_config['learning_rate'], weight_decay=0.005)
+    criterion_murmur = torch.nn.CrossEntropyLoss(weight=class_weights)
+    optimizer_murmur = torch.optim.Adam(model_murmur.parameters(), lr=train_config['learning_rate'], weight_decay=0.005)
     
     for epoch in (range(train_config['num_epochs'])):
-        model.train()
-        for i, (inputs, specs, labels, pid) in enumerate(trainloader): 
+        model_murmur.train()
+        for i, (inputs, specs, murmurs, outcomes, pid) in enumerate(trainloader): 
             
             inputs = inputs.to(device)
-            labels = labels.to(device)
+            labels = murmurs.to(device)
 
-            outputs = model(inputs)
-            loss   = criterion(outputs, labels)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-        print(epoch)
+            outputs_murmur = model_murmur(inputs)
+            loss_murmur    = criterion_murmur(outputs_murmur, labels)
+            optimizer_murmur.zero_grad()
+            loss_murmur.backward()
+            optimizer_murmur.step()
+        print("Murmur",epoch)
+    
+    
+    model_outcome = ResNet1d(input_dim=(arch_config['n_input_channels'], arch_config['signal_length']), 
+                     blocks_dim=list(zip(arch_config['net_filter_size'], arch_config['net_signal_length'])),
+                     kernel_size=arch_config['kernel_size'],
+                     n_classes=arch_config['n_classes'],
+                     dropout_rate=arch_config['dropout_rate'])
+    model_outcome = model_outcome.to(device)
+    
+    class_weights=torch.tensor([4, 1],dtype=torch.float)
+    class_weights = class_weights.to(device)
+    criterion_outcome = torch.nn.CrossEntropyLoss(weight=class_weights)
+    optimizer_outcome = torch.optim.Adam(model_outcome.parameters(), lr=train_config['learning_rate'], weight_decay=0.005)
+    
+    for epoch in (range(train_config['num_epochs'])):
+        model_outcome.train()
+        for i, (inputs, specs, murmurs, outcomes, pid) in enumerate(trainloader): 
+            
+            inputs = inputs.to(device)
+            labels = outcomes.to(device)
+
+            outputs_outcome = model_outcome(inputs)
+            loss_outcome    = criterion_outcome(outputs_outcome, labels)
+            optimizer_outcome.zero_grad()
+            loss_outcome.backward()
+            optimizer_outcome.step()
+        print("Outcome",epoch)
 
     
 
     # Save the model.
-    save_challenge_model(model_folder, murmur_classes, model, outcome_classes, model)
+    save_challenge_model(model_folder, murmur_classes, model_murmur, outcome_classes, model_outcome)
 
     if verbose >= 1:
         print('Done.')
@@ -119,7 +147,7 @@ def run_challenge_model(model, data, recordings, verbose):
     classes = model['murmur_classes']
     mast    = model['murmur_classifier']
     outcome_classes = model['outcome_classes']
-    # outcome_classifier = model['outcome_classifier']
+    outcome_classifier = model['outcome_classifier']
     
     signals = [([],[])]
     for i in recordings:
@@ -165,6 +193,9 @@ def run_challenge_model(model, data, recordings, verbose):
     murmur_probabilities = probs
     murmur_labels = labels
     
+    outcome_classifier = outcome_classifier.to(device)
+    outcome_classifier.eval()
+    outputs = outcome_classifier(inps)
     a =np.array(outputs.detach().cpu())
     tp = np.zeros((a.shape[0],a.shape[1]))
     tp[:,0] = a[:,0]

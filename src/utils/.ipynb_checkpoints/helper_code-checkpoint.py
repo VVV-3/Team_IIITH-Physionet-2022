@@ -203,6 +203,32 @@ def get_label(data):
         raise ValueError('No label available. Is your code trying to load labels from the hidden data?')
     return label
 
+# Get murmur from patient data.
+def get_murmur(data):
+    murmur = None
+    for l in data.split('\n'):
+        if l.startswith('#Murmur:'):
+            try:
+                murmur = l.split(': ')[1]
+            except:
+                pass
+    if murmur is None:
+        raise ValueError('No murmur available. Is your code trying to load labels from the hidden data?')
+    return murmur
+
+# Get outcome from patient data.
+def get_outcome(data):
+    outcome = None
+    for l in data.split('\n'):
+        if l.startswith('#Outcome:'):
+            try:
+                outcome = l.split(': ')[1]
+            except:
+                pass
+    if outcome is None:
+        raise ValueError('No outcome available. Is your code trying to load labels from the hidden data?')
+    return outcome
+
 # Sanitize binary values from Challenge outputs.
 def sanitize_binary_value(x):
     x = str(x).replace('"', '').replace("'", "").strip() # Remove any quotes or invisible characters.

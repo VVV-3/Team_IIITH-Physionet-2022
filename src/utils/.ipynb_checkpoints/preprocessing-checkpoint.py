@@ -1,4 +1,4 @@
-from src.utils.helper_code import find_patient_files, load_patient_data, load_recordings, get_label, get_patient_id
+from src.utils.helper_code import find_patient_files, load_patient_data, load_recordings, get_murmur, get_outcome, get_patient_id
 from scipy.signal import decimate
 from heartpy import remove_baseline_wander, filtering as hp_filtering
 import numpy as np
@@ -12,9 +12,12 @@ def get_pcg_data(data_folder):
     filenames = find_patient_files(data_folder)
     pcg_signals = list()
     
-    classes = ['Present', 'Unknown', 'Absent']
-    num_classes = len(classes)
-    labels      = list()
+    murmur_classes = ['Present', 'Unknown', 'Absent']
+    num_murmur_classes = len(murmur_classes)
+    outcome_classes = ['Abnormal', 'Normal']
+    num_outcome_classes = len(outcome_classes)
+    murmurs = list()
+    outcomes = list()
     patient_ids = list()
     
     for file in (filenames):
@@ -22,16 +25,24 @@ def get_pcg_data(data_folder):
         patient_recordings = load_recordings(data_folder, patient_data, get_frequencies=True)
         pcg_signals.append(patient_recordings)
         
-        current_labels = np.zeros(num_classes, dtype=int)
-        label = get_label(patient_data)
-        if label in classes:
-            j = classes.index(label)
-            current_labels[j] = 1
-        labels.append(current_labels)
+        # Extract labels and use one-hot encoding.
+        current_murmur = np.zeros(num_murmur_classes, dtype=int)
+        murmur = get_murmur(patient_data)
+        if murmur in murmur_classes:
+            j = murmur_classes.index(murmur)
+            current_murmur[j] = 1
+        murmurs.append(current_murmur)
+
+        current_outcome = np.zeros(num_outcome_classes, dtype=int)
+        outcome = get_outcome(patient_data)
+        if outcome in outcome_classes:
+            j = outcome_classes.index(outcome)
+            current_outcome[j] = 1
+        outcomes.append(current_outcome)
         
         patient_ids.append(get_patient_id(patient_data))
         
-    return pcg_signals, np.vstack(labels), patient_ids
+    return pcg_signals, np.vstack(murmurs), np.vstack(outcomes), patient_ids
 
 
 def resample_pcg_signals(raw_signals, resampled_freq = 1000):
