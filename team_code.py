@@ -57,8 +57,8 @@ def train_challenge_model(data_folder, model_folder, verbose):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     train_config = {
-                    'num_epochs':20,
-                    'learning_rate':5e-5,
+                    'num_epochs':30,
+                    'learning_rate':1e-4,
                     }
     
     # model2 = ASTModel(label_dim=3,input_fdim=33, input_tdim=128, imagenet_pretrain=False)
@@ -107,7 +107,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
                      dropout_rate=arch_config['dropout_rate'])
     model_outcome = model_outcome.to(device)
     
-    class_weights=torch.tensor([4, 1],dtype=torch.float)
+    class_weights=torch.tensor([1.5, 1],dtype=torch.float)
     class_weights = class_weights.to(device)
     criterion_outcome = torch.nn.CrossEntropyLoss(weight=class_weights)
     optimizer_outcome = torch.optim.Adam(model_outcome.parameters(), lr=train_config['learning_rate'], weight_decay=0.005)
@@ -193,9 +193,11 @@ def run_challenge_model(model, data, recordings, verbose):
     murmur_probabilities = probs
     murmur_labels = labels
     
+    
     outcome_classifier = outcome_classifier.to(device)
     outcome_classifier.eval()
     outputs = outcome_classifier(inps)
+    
     a =np.array(outputs.detach().cpu())
     tp = np.zeros((a.shape[0],a.shape[1]))
     tp[:,0] = a[:,0]
@@ -205,7 +207,7 @@ def run_challenge_model(model, data, recordings, verbose):
     ls=list(pp)
     probs = np.array([ls.count(0), ls.count(1)])/len(ls)
     val = probs.max()
-    if(probs[0]>0.25):
+    if(probs[0]>0.6):
         val = probs[0]
     pos = np.where( probs == val)
 

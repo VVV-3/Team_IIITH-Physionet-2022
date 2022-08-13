@@ -120,7 +120,7 @@ class ResNet1d(nn.Module):
             n_filters_in, n_filters_out = n_filters_out, n_filters
             n_samples_in, n_samples_out = n_samples_out, n_samples
             downsample = _downsample(n_samples_in, n_samples_out)
-            print(n_filters_in, int(n_filters_out/4), downsample, kernel_size[0], dropout_rate)
+            # print(n_filters_in, int(n_filters_out/4), downsample, kernel_size[0], dropout_rate)
             resblk1d = ResBlock1d(n_filters_in, int(n_filters_out/4), downsample, kernel_size[0], dropout_rate)
             self.add_module('resblock1d_0_{0}'.format(i), resblk1d)
             self.res_blocks_0 += [resblk1d]
@@ -156,13 +156,13 @@ class ResNet1d(nn.Module):
         y = x
         for i in range(len(self.res_blocks_0)):
             x_0, y_0 = self.res_blocks_0[i](x, y)
-            # print(x.shape, y.shape, x_0.shape, y_0.shape)
             x_1, y_1 = self.res_blocks_1[i](x, y)
             x_2, y_2 = self.res_blocks_2[i](x, y)
             x_3, y_3 = self.res_blocks_3[i](x, y)
             
             x = torch.cat((x_0,x_1,x_2,x_3), 1)
             y = torch.cat((y_0,y_1,y_2,y_3), 1)
+            # x,y = x_2,y_2
             
          # Flatten array
         x = x.view(x.size(0), -1)

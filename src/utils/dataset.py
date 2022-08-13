@@ -18,27 +18,36 @@ class PCGDataset(Dataset):
         signals = split_signals(signals, final_len=10000, stride=2500)
         
         mel_spects = make_mel_spectrograms(signals, 1000)
-        
+        ct = [0,0,0,0,0]
+        ttl= [0,0]
         for patient_no in range(len(signals)):
             for signal_no in range(len(signals[patient_no][0])):
+                    
                 tp = np.array([0,0])
                 if labels[patient_no][1] == 1:
+                    # ttl[0] += 1
                     continue
                 else:
                     tp[0] = labels[patient_no][0]
                     tp[1] = labels[patient_no][2]
+                    # ttl[1] += 1
+                    # if labels[patient_no][0] == 1:
+                    #     ct[0] += 1
+                    # if labels[patient_no][1] == 1:
+                    #     ct[1] += 1
+                    # if labels[patient_no][2] == 1:
+                    #     ct[2] += 1
+                    # if outcomes[patient_no][0] == 1:
+                    #     ct[3] += 1
+                    # if outcomes[patient_no][1] == 1:
+                    #     ct[4] += 1
                     
-                    # if tp[0] == 1:
-                    #     tp = np.array([0])
-                    # else:
-                    #     tp = np.array([1])
-                    
-                self.signals.append(signals[patient_no][0][signal_no])
-                self.mel_spects.append(mel_spects[patient_no][0][signal_no])
-                self.labels.append(tp)
-                self.outcomes.append(outcomes[patient_no])
-                self.idxs.append(pids[patient_no])
-        
+                    self.signals.append(signals[patient_no][0][signal_no])
+                    self.mel_spects.append(mel_spects[patient_no][0][signal_no])
+                    self.labels.append(tp)
+                    self.outcomes.append(outcomes[patient_no])
+                    self.idxs.append(pids[patient_no])
+        # print(ct,ttl)
     def mel_shape(self):
         return self.mel_spects.shape
         
