@@ -65,9 +65,9 @@ def train_challenge_model(data_folder, model_folder, verbose):
     arch_config = {
                     'n_input_channels':1,
                     'signal_length':10000,
-                    'net_filter_size':[8 , 32, 64],
-                    'net_signal_length':[ 5000, 500, 100],
-                    'kernel_size':[129, 65, 33, 9],
+                    'net_filter_size':[4, 8 , 16, 32],
+                    'net_signal_length':[ 5000, 1000, 500, 100],
+                    'kernel_size':[33, 17, 9, 5],
                     'n_classes':2,
                     'dropout_rate':0.4
                     }
@@ -183,7 +183,7 @@ def run_challenge_model(model, data, recordings, verbose):
     ls=list(pp)
     probs = np.array([ls.count(0), ls.count(1), ls.count(2)])/len(ls)
     val = probs.max()
-    if(probs[0]>0.4):
+    if(probs[0]>0.3):
         val = probs[0]
     pos = np.where( probs == val)
 
