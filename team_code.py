@@ -18,7 +18,7 @@ from src.utils.dataset import PCGDataset
 import torch
 from torch.utils.data import DataLoader
 from src.models.ast_models import ASTModel
-from src.models.resnet import ResNet1d
+from src.models.resnet import ResNet1d_length, ResNet1d_filter
 from src.utils.preprocessing import *
 
 ################################################################################
@@ -72,7 +72,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
                     'dropout_rate':0.4
                     }
 
-    model_murmur = ResNet1d(input_dim=(arch_config['n_input_channels'], arch_config['signal_length']), 
+    model_murmur = ResNet1d_filter(input_dim=(arch_config['n_input_channels'], arch_config['signal_length']), 
                      blocks_dim=list(zip(arch_config['net_filter_size'], arch_config['net_signal_length'])),
                      kernel_size=arch_config['kernel_size'],
                      n_classes=arch_config['n_classes'],
@@ -100,7 +100,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
         print("Murmur",epoch)
     
     
-    model_outcome = ResNet1d(input_dim=(arch_config['n_input_channels'], arch_config['signal_length']), 
+    model_outcome = ResNet1d_length(input_dim=(arch_config['n_input_channels'], arch_config['signal_length']), 
                      blocks_dim=list(zip(arch_config['net_filter_size'], arch_config['net_signal_length'])),
                      kernel_size=arch_config['kernel_size'],
                      n_classes=arch_config['n_classes'],
@@ -183,7 +183,7 @@ def run_challenge_model(model, data, recordings, verbose):
     ls=list(pp)
     probs = np.array([ls.count(0), ls.count(1), ls.count(2)])/len(ls)
     val = probs.max()
-    if(probs[0]>0.25):
+    if(probs[0]>0.4):
         val = probs[0]
     pos = np.where( probs == val)
 

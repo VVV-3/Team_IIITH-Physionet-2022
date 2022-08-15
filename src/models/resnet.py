@@ -77,7 +77,7 @@ class ResBlock1d(nn.Module):
         return x, y
 
 
-class ResNet1d(nn.Module):
+class ResNet1d_length(nn.Module):
     """Residual network for unidimensional signals.
     Parameters
     ----------
@@ -97,7 +97,7 @@ class ResNet1d(nn.Module):
     """
 
     def __init__(self, input_dim, blocks_dim, kernel_size,n_classes=3,dropout_rate=0.8):
-        super(ResNet1d, self).__init__()
+        super(ResNet1d_length, self).__init__()
         # First layers
         # n_filters_in, n_filters_out = input_dim[0], blocks_dim[0][0]
         # n_samples_in, n_samples_out = input_dim[1], blocks_dim[0][1]
@@ -175,5 +175,72 @@ class ResNet1d(nn.Module):
         
         # x = self.lin3(x)
         # x = self.sigm(x)
+
+        return x
+    
+class ResNet1d_filter(nn.Module):
+
+    def __init__(self, input_dim, blocks_dim, kernel_size,n_classes=3,dropout_rate=0.8):
+        super(ResNet1d_filter, self).__init__()
+        # First layers
+        n_filters_out, n_samples_out = input_dim[0], input_dim[1]
+
+        # Residual block layers
+        self.res_blocks_0 = []
+        self.res_blocks_1 = []
+        self.res_blocks_2 = []
+        self.res_blocks_3 = []
+        for i, (n_filters, n_samples) in enumerate(blocks_dim):
+
+            n_filters_in, n_filters_out = n_filters_out, n_filters
+            n_samples_in, n_samples_out = n_samples_out, n_samples
+            downsample = _downsample(n_samples_in, n_samples_out)
+
+            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out/4), downsample, kernel_size[0], dropout_rate)
+            self.add_module('resblock1d_0_{0}'.format(i), resblk1d)
+            self.res_blocks_0 += [resblk1d]
+            
+            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out/4), downsample, kernel_size[1], dropout_rate)
+            self.add_module('resblock1d_1_{0}'.format(i), resblk1d)
+            self.res_blocks_1 += [resblk1d]
+            
+            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out/4), downsample, kernel_size[2], dropout_rate)
+            self.add_module('resblock1d_2_{0}'.format(i), resblk1d)
+            self.res_blocks_2 += [resblk1d]
+            
+            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out/4), downsample, kernel_size[3], dropout_rate)
+            self.add_module('resblock1d_3_{0}'.format(i), resblk1d)
+            self.res_blocks_3 += [resblk1d]
+            
+            
+        self.lin1 = nn.Linear(blocks_dim[-1][0]*blocks_dim[-1][1], int((blocks_dim[-1][0]*blocks_dim[-1][1])/2))
+        self.relu1 = nn.ReLU(inplace=False)
+        self.lin2 = nn.Linear(int((blocks_dim[-1][0]*blocks_dim[-1][1])/2), n_classes)
+        self.dropout1 = nn.Dropout(dropout_rate)
+        
+        self.lin3 = nn.Linear(n_classes, 1)
+        self.sigm = nn.Sigmoid()
+
+    def forward(self, x):
+        """Implement ResNet1d forward propagation"""
+        # Residual blocks
+        y = x
+        for i in range(len(self.res_blocks_0)):
+            x_0, y_0 = self.res_blocks_0[i](x, y)
+            x_1, y_1 = self.res_blocks_1[i](x, y)
+            x_2, y_2 = self.res_blocks_2[i](x, y)
+            x_3, y_3 = self.res_blocks_3[i](x, y)
+            
+            x = torch.cat((x_0,x_1,x_2,x_3), 1)
+            y = torch.cat((y_0,y_1,y_2,y_3), 1)
+            
+         # Flatten array
+        x = x.view(x.size(0), -1)
+
+        # Fully connected layer
+        x = self.dropout1(x)
+        x = self.lin1(x)
+        x = self.relu1(x)
+        x = self.lin2(x)
 
         return x
