@@ -119,21 +119,21 @@ class ResNet1d(nn.Module):
             #     continue
             n_filters_in, n_filters_out = n_filters_out, n_filters
             n_samples_in, n_samples_out = n_samples_out, n_samples
-            downsample = _downsample(n_samples_in, n_samples_out)
+            downsample = _downsample(n_samples_in, n_samples_out/4)
             # print(n_filters_in, int(n_filters_out/4), downsample, kernel_size[0], dropout_rate)
-            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out/4), downsample, kernel_size[0], dropout_rate)
+            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out), downsample, kernel_size[0], dropout_rate)
             self.add_module('resblock1d_0_{0}'.format(i), resblk1d)
             self.res_blocks_0 += [resblk1d]
             
-            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out/4), downsample, kernel_size[1], dropout_rate)
+            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out), downsample, kernel_size[1], dropout_rate)
             self.add_module('resblock1d_1_{0}'.format(i), resblk1d)
             self.res_blocks_1 += [resblk1d]
             
-            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out/4), downsample, kernel_size[2], dropout_rate)
+            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out), downsample, kernel_size[2], dropout_rate)
             self.add_module('resblock1d_2_{0}'.format(i), resblk1d)
             self.res_blocks_2 += [resblk1d]
             
-            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out/4), downsample, kernel_size[3], dropout_rate)
+            resblk1d = ResBlock1d(n_filters_in, int(n_filters_out), downsample, kernel_size[3], dropout_rate)
             self.add_module('resblock1d_3_{0}'.format(i), resblk1d)
             self.res_blocks_3 += [resblk1d]
             
@@ -160,8 +160,8 @@ class ResNet1d(nn.Module):
             x_2, y_2 = self.res_blocks_2[i](x, y)
             x_3, y_3 = self.res_blocks_3[i](x, y)
             
-            x = torch.cat((x_0,x_1,x_2,x_3), 1)
-            y = torch.cat((y_0,y_1,y_2,y_3), 1)
+            x = torch.cat((x_0,x_1,x_2,x_3), 2)
+            y = torch.cat((y_0,y_1,y_2,y_3), 2)
             # x,y = x_2,y_2
             
          # Flatten array
